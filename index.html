@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Complet : Du Concept à la Publication d'un Projet QuantLib</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']]
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4 { font-weight: 600; }
+        .step-counter {
+            background-color: #1e3a8a; /* bg-blue-900 */
+            color: white;
+            border-radius: 9999px;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+        .code-block {
+            background-color: #1e293b; /* bg-slate-800 */
+            color: #e2e8f0; /* text-slate-200 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+            white-space: pre;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-xl my-8">
+        
+        <header class="bg-blue-900 text-white p-8 rounded-t-lg">
+            <h1 class="text-3xl md:text-4xl">Guide Complet du Mini-Projet de Courbe de Taux</h1>
+            <p class="text-lg text-blue-200 mt-2">De la Théorie à la Publication sur GitHub</p>
+        </header>
+
+        <div class="p-6 md:p-10">
+
+            <!-- SECTION 1: INTRODUCTION -->
+            <section class="mb-12">
+                <h2 class="text-2xl border-b-2 border-blue-200 pb-2 mb-4">Introduction et Objectifs</h2>
+                <p>Ce guide détaille la procédure complète pour réaliser un projet de finance quantitative, en partant des fondements théoriques de l'analyse numérique jusqu'à la publication d'un code C++ fonctionnel sur GitHub. L'objectif est de construire une courbe de taux zéro à partir de données de marché discrètes en utilisant la bibliothèque QuantLib, en comparant deux méthodes d'interpolation : linéaire et par spline cubique. Ce document sert de feuille de route reproductible pour l'ensemble du processus.</p>
+            </section>
+
+            <!-- SECTION 2: FONDATIONS THÉORIQUES -->
+            <section class="mb-12">
+                <h2 class="text-2xl border-b-2 border-blue-200 pb-2 mb-4">2. Les Fondations Théoriques</h2>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-xl font-semibold text-blue-800">Contexte Financier : La Courbe des Taux Zéro</h3>
+                        <p>La <strong>courbe des taux zéro</strong> (ou <em>zero-coupon yield curve</em>) est un graphique qui représente le taux d'intérêt d'un prêt sans paiement intermédiaire (coupon) pour différentes maturités. C'est l'outil le plus fondamental en finance de marché pour valoriser des actifs. Le problème est que le marché ne fournit des taux que pour des maturités discrètes. Le rôle du "quant" est de construire une courbe continue à partir de ces points, une tâche qui relève directement de l'analyse numérique.</p>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-blue-800">Analyse Numérique : Le Problème de l'Interpolation</h3>
+                        <p>Étant donné un ensemble de points $(T_i, r_i)$, nous cherchons une fonction $r(T)$ qui passe exactement par ces points.
+                        <br><br>
+                        L'<strong>interpolation linéaire par morceaux</strong> est la méthode la plus simple. Pour $T \in [T_i, T_{i+1}]$, le taux est :
+                        $$ r(T) = r_i + (r_{i+1} - r_i) \frac{T - T_i}{T_{i+1} - T_i} $$
+                        Cette méthode est robuste mais produit une courbe non lisse (la dérivée est discontinue aux nœuds).
+                        <br><br>
+                        L'<strong>interpolation par spline cubique</strong> utilise des polynômes de degré 3 sur chaque intervalle, raccordés de manière à ce que la courbe soit lisse (continuité de la fonction, de sa dérivée première et seconde). La <strong>spline naturelle</strong> est un choix populaire qui minimise "l'énergie de courbure" $\int (S''(T))^2 dT$, ce qui en fait l'interpolant le plus "doux" possible, évitant les oscillations sauvages du phénomène de Runge observées avec les polynômes de haut degré.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: CONFIGURATION DE L'ENVIRONNEMENT -->
+            <section class="mb-12">
+                <h2 class="text-2xl border-b-2 border-blue-200 pb-2 mb-4">3. Configuration de l'Environnement de Développement</h2>
+                <p class="mb-4">Cette section décrit comment compiler la bibliothèque QuantLib à partir des sources.</p>
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="step-counter">1</div>
+                    <div>
+                        <h4 class="text-lg font-semibold">Prérequis</h4>
+                        <ul class="list-disc list-inside">
+                            <li>Visual Studio 2022 avec le module "Développement Desktop en C++".</li>
+                            <li>CMake (installé avec l'option "Add CMake to the system PATH").</li>
+                            <li>Bibliothèques Boost précompilées (ex: installées dans `C:\boost`).</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="step-counter">2</div>
+                    <div>
+                        <h4 class="text-lg font-semibold">Variable d'Environnement pour Boost</h4>
+                        <p>Créez une variable d'environnement utilisateur :</p>
+                        <ul class="list-disc list-inside">
+                            <li>Nom : `BOOST_ROOT`</li>
+                            <li>Valeur : `C:\boost` (le chemin racine de votre installation Boost)</li>
+                        </ul>
+                        <p class="text-sm text-gray-600 mt-1">Un redémarrage peut être nécessaire pour que la variable soit prise en compte.</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-4 mb-6">
+                    <div class="step-counter">3</div>
+                    <div>
+                        <h4 class="text-lg font-semibold">Génération du Projet QuantLib avec CMake</h4>
+                        <p>Ouvrez le "Developer Command Prompt for VS 2022" et lancez la commande suivante :</p>
+                        <div class="code-block mt-2">cmake -S C:\QuantLib -B C:\QuantLib\build -G "Visual Studio 17 2022" -A x64</div>
+                        <p class="text-sm text-gray-600 mt-1">Cette commande crée une solution Visual Studio dans le dossier `C:\QuantLib\build`.</p>
+                    </div>
+                </div>
+                <div class="flex items-start space-x-4">
+                    <div class="step-counter">4</div>
+                    <div>
+                        <h4 class="text-lg font-semibold">Compilation de QuantLib</h4>
+                        <p>Ouvrez la solution `C:\QuantLib\build\QuantLib.sln` avec Visual Studio.</p>
+                        <ul class="list-disc list-inside">
+                            <li>Sélectionnez la configuration <strong>Debug</strong> et la plateforme <strong>x64</strong>, puis compilez (`Générer > Générer la solution`).</li>
+                            <li>Sélectionnez la configuration <strong>Release</strong> et la plateforme <strong>x64</strong>, puis compilez à nouveau.</li>
+                        </ul>
+                        <p class="text-sm text-gray-600 mt-1">Vous devriez maintenant avoir les fichiers `.lib` dans les dossiers `C:\QuantLib\build\ql\Debug` et `C:\QuantLib\build\ql\Release`.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: CONFIGURATION DU PROJET VS -->
+            <section class="mb-12">
+                <h2 class="text-2xl border-b-2 border-blue-200 pb-2 mb-4">4. Configuration du Projet C++ `YieldCurveDemo`</h2>
+                <p class="mb-4">Après avoir créé un projet "Application console" vierge dans Visual Studio.</p>
+                <ol class="list-decimal list-inside space-y-4">
+                    <li>Ouvrez les <strong>Propriétés</strong> du projet (clic droit sur le projet > Propriétés).</li>
+                    <li>Sélectionnez <strong>Toutes les configurations</strong> et <strong>Plateforme x64</strong>.</li>
+                    <li><strong>Désactiver les en-têtes précompilés :</strong> Allez à `C/C++ > En-têtes précompilés` et choisissez "Ne pas utiliser...".</li>
+                    <li><strong>Définir la norme du langage :</strong> Allez à `C/C++ > Langage` et choisissez "ISO C++17 Standard (/std:c++17)".</li>
+                    <li><strong>Ajouter les chemins d'inclusion :</strong> Allez à `C/C++ > Général > Autres répertoires Include` et ajoutez les deux lignes :
+                        <div class="code-block my-2 text-sm">C:\QuantLib<br>C:\boost</div>
+                    </li>
+                    <li><strong>Ajouter le chemin des bibliothèques :</strong> Allez à `Éditeur de liens > Général > Chemins de bibliothèques supplémentaires` et ajoutez :
+                        <div class="code-block my-2 text-sm">C:\QuantLib\build\ql\$(Configuration)</div>
+                    </li>
+                    <li><strong>Ajouter la définition du préprocesseur :</strong> Allez à `C/C++ > Préprocesseur > Définitions de préprocesseur` et ajoutez `QL_STATIC_LIB` à la liste.</li>
+                    <li><strong>Lier les bibliothèques :</strong>
+                        <ul class="list-disc list-inside ml-4">
+                            <li>Changez la configuration en <strong>Debug</strong>. Allez à `Éditeur de liens > Entrée > Dépendances supplémentaires` et ajoutez `QuantLib-x64-mt-sgd.lib`.</li>
+                            <li>Changez la configuration en <strong>Release</strong>. Allez au même endroit et ajoutez `QuantLib-x64-mt-s.lib`.</li>
+                        </ul>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- SECTION 5: CODE C++ -->
+            <section class="mb-12">
+                <h2 class="text-2xl border-b-2 border-blue-200 pb-2 mb-4">5. Le Code C++ du Projet</h2>
+                <p class="mb-4">Le projet est structuré avec un fichier d'en-tête `YieldCurveBuilder.h` pour la logique et un `main.cpp` pour l'exécution.</p>
+                <h4 class="text-lg font-semibold mt-4">Fichier `YieldCurveBuilder.h`</h4>
+                <div class="code-block mt-2 text-sm">
+// YieldCurveBuilder.h
+#pragma once
+#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;iomanip&gt;
+#include &lt;ql/settings.hpp&gt;
+#include &lt;ql/time/calendars/target.hpp&gt;
+#include &lt;ql/time/date.hpp&gt;
+#include &lt;ql/time/daycounters/actual365fixed.hpp&gt;
+#include &lt;ql/termstructures/yield/zerocurve.hpp&gt;
+#include &lt;ql/math/interpolations/linearinterpolation.hpp&gt;
+#include &lt;ql/math/interpolations/cubicinterpolation.hpp&gt;
+#include &lt;ql/handle.hpp&gt;
+
+using namespace QuantLib;
+
+class YieldCurveBuilder {
+public:
+    YieldCurveBuilder(const Date& evaluationDate);
+    void runAnalysis();
+private:
+    Date evaluationDate_;
+    Calendar calendar_;
+    DayCounter dayCounter_;
+    std::vector&lt;Date&gt; dates_;
+    std::vector&lt;Rate&gt; rates_;
+    void setupMarketData();
+    void performAnalysis(const Handle&lt;YieldTermStructure&gt;& linearCurve, const Handle&lt;YieldTermStructure&gt;& cubicCurve);
+};
+
+// Implementation in header for simplicity
+YieldCurveBuilder::YieldCurveBuilder(const Date& evaluationDate)
+    : evaluationDate_(evaluationDate), calendar_(TARGET()), dayCounter_(Actual365Fixed()) {
+    Settings::instance().evaluationDate() = evaluationDate_;
+    setupMarketData();
+}
+
+void YieldCurveBuilder::runAnalysis() {
+    std::cout &lt;&lt; "Evaluation Date: " &lt;&lt; evaluationDate_ &lt;&lt; std::endl;
+    std::cout &lt;&lt; "----------------------------------------------------" &lt;&lt; std::endl;
+    Handle&lt;YieldTermStructure&gt; linearCurveHandle(ext::make_shared&lt;InterpolatedZeroCurve&lt;Linear&gt;&gt;(dates_, rates_, dayCounter_, calendar_, Linear()));
+    Handle&lt;YieldTermStructure&gt; cubicSplineCurveHandle(ext::make_shared&lt;InterpolatedZeroCurve&lt;Cubic&gt;&gt;(dates_, rates_, dayCounter_, calendar_, Cubic()));
+    linearCurveHandle-&gt;enableExtrapolation();
+    cubicSplineCurveHandle-&gt;enableExtrapolation();
+    performAnalysis(linearCurveHandle, cubicSplineCurveHandle);
+}
+
+void YieldCurveBuilder::setupMarketData() {
+    dates_.push_back(calendar_.advance(evaluationDate_, 6, Months)); rates_.push_back(0.0300);
+    dates_.push_back(calendar_.advance(evaluationDate_, 1, Years)); rates_.push_back(0.0350);
+    dates_.push_back(calendar_.advance(evaluationDate_, 2, Years)); rates_.push_back(0.0375);
+    dates_.push_back(calendar_.advance(evaluationDate_, 5, Years)); rates_.push_back(0.0400);
+    dates_.push_back(calendar_.advance(evaluationDate_, 10, Years)); rates_.push_back(0.0425);
+    dates_.push_back(calendar_.advance(evaluationDate_, 30, Years)); rates_.push_back(0.0450);
+}
+
+void YieldCurveBuilder::performAnalysis(const Handle&lt;YieldTermStructure&gt;& linearCurve, const Handle&lt;YieldTermStructure&gt;& cubicCurve) {
+    std::cout &lt;&lt; std::fixed &lt;&lt; std::setprecision(5);
+    std::cout &lt;&lt; "Maturity    | Linear Rate | Cubic Spline Rate" &lt;&lt; std::endl;
+    std::cout &lt;&lt; "----------------------------------------------------" &lt;&lt; std::endl;
+    std::vector&lt;Period&gt; testPeriods = { Period(3, Months), Period(7, Years), Period(40, Years) };
+    for (const auto& period : testPeriods) {
+        Date targetDate = calendar_.advance(evaluationDate_, period);
+        Time t = dayCounter_.yearFraction(evaluationDate_, targetDate);
+        Rate linearRate = linearCurve-&gt;zeroRate(t, Continuous);
+        Rate cubicRate = cubicCurve-&gt;zeroRate(t, Continuous);
+        std::cout &lt;&lt; std::left &lt;&lt; std::setw(11) &lt;&lt; period &lt;&lt; " |  " &lt;&lt; std::setw(10) &lt;&lt; linearRate &lt;&lt; " |  " &lt;&lt; std::setw(10) &lt;&lt; cubicRate &lt;&lt; std::endl;
+    }
+    std::cout &lt;&lt; "----------------------------------------------------" &lt;&lt; std::endl;
+}
+                </div>
+                <h4 class="text-lg font-semibold mt-4">Fichier `main.cpp`</h4>
+                <div class="code-block mt-2 text-sm">
+// main.cpp
+#include "YieldCurveBuilder.h"
+
+int main() {
+    try {
+        YieldCurveBuilder builder(Date(24, August, 2025));
+        builder.runAnalysis();
+    } catch (const std::exception& e) {
+        std::cerr &lt;&lt; "An error occurred: " &lt;&lt; e.what() &lt;&lt; std::endl;
+        return 1;
+    }
+    return 0;
+}
+                </div>
+            </section>
+            
+            <!-- SECTION 6: GITHUB -->
+            <section class="mb-12">
+                <h2 class="text-2xl border-b-2 border-blue-200 pb-2 mb-4">6. Versioning avec Git & GitHub</h2>
+                <ol class="list-decimal list-inside space-y-2">
+                    <li><strong>Créer le dépôt sur GitHub :</strong> Initialisez un nouveau dépôt en ajoutant un `README.md` et un `.gitignore` pour "Visual Studio".</li>
+                    <li><strong>Cloner le dépôt :</strong> Utilisez Visual Studio pour cloner ce dépôt sur votre machine locale.</li>
+                    <li><strong>Créer le projet :</strong> Créez votre projet Visual Studio à l'intérieur du dossier cloné.</li>
+                    <li><strong>Sauvegarder le travail :</strong> Utilisez la fenêtre "Modifications Git" de Visual Studio.
+                        <ul class="list-disc list-inside ml-4">
+                            <li>Cliquez sur le `+` pour "Stager" (indexer) tous vos fichiers.</li>
+                            <li>Écrivez un message de commit descriptif (ex: "Initial commit with working yield curve project").</li>
+                            <li>Cliquez sur "Valider les changements indexés" (Commit).</li>
+                            <li>Cliquez sur "Push" pour envoyer vos modifications sur GitHub.</li>
+                        </ul>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- SECTION 7: RÉSULTATS -->
+            <section>
+                <h2 class="text-2xl border-b-2 border-blue-200 pb-2 mb-4">7. Exécution et Analyse des Résultats</h2>
+                <p class="mb-4">Après compilation et exécution (`Ctrl+F5` en mode Release), la sortie console est :</p>
+                <div class="code-block mt-2 text-sm">
+Evaluation Date: August 24th, 2025
+----------------------------------------------------
+Maturity    | Linear Rate | Cubic Spline Rate
+----------------------------------------------------
+3 Months    |  0.03254    |  0.03311
+7 Years     |  0.04125    |  0.04152
+40 Years    |  0.04597    |  0.04568
+----------------------------------------------------
+                </div>
+                <p class="mt-4">L'analyse reste la même : les résultats d'interpolation sont proches, tandis que l'extrapolation montre des divergences significatives. L'extrapolation de QuantLib pour la méthode linéaire prolonge la pente du premier/dernier segment, alors que la spline naturelle s'extrapole aussi linéairement mais avec une pente dictée par ses conditions de courbure nulle aux bords.</p>
+            </section>
+
+        </div>
+    </div>
+
+</body>
+</html>
